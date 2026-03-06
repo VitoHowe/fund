@@ -13,6 +13,10 @@
 - P7 稳定性与治理（数据源监控、Prometheus 指标、故障转移集成测试、回归基线、License 矩阵）
 - 运行时独立性约束（不依赖 MCP 进行数据获取）
 
+API 总结与前端规划：
+- [API 总结](docs/api/API_SUMMARY.zh-CN.md)
+- [前端规划](docs/plan/frontend-plan.zh-CN.md)
+
 快速验证：
 
 ```bash
