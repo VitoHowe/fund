@@ -12,6 +12,7 @@ COPY scripts /app/scripts
 COPY docs /app/docs
 COPY apps /app/apps
 COPY config /app/config
+COPY infra /app/infra
 
 RUN pip install --no-cache-dir --upgrade pip \
     && pip install --no-cache-dir .

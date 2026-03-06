@@ -125,7 +125,7 @@ class ReportApiHandler(BaseHTTPRequestHandler):
         self.wfile.write(data)
 
 
-def run_server(host: str = "127.0.0.1", port: int = 8010) -> None:
+def run_server(host: str = "0.0.0.0", port: int = 8010) -> None:
     server = ThreadingHTTPServer((host, port), ReportApiHandler)
     print(f"Report API listening on http://{host}:{port}")
     server.serve_forever()
