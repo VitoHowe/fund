@@ -1,0 +1,161 @@
+openapi: 3.0.3
+info:
+  title: Fund Intel API
+  version: 0.1.0
+  description: Data hub API contracts for fund intelligence platform.
+servers:
+  - url: http://localhost:8000
+paths:
+  /v1/data/realtime/{symbol}:
+    get:
+      summary: Get realtime quote from source manager
+      parameters:
+        - name: symbol
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Unified realtime payload
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NormalizedEnvelope"
+  /v1/data/history/{symbol}:
+    get:
+      summary: Get historical nav or price series
+      parameters:
+        - name: symbol
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 30
+      responses:
+        "200":
+          description: Unified history payload
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NormalizedEnvelope"
+  /v1/data/news:
+    get:
+      summary: Get news items
+      parameters:
+        - name: symbol
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 20
+      responses:
+        "200":
+          description: Unified news payload
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NormalizedEnvelope"
+  /v1/data/flow:
+    get:
+      summary: Get fund flow or sector flow
+      parameters:
+        - name: symbol
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Unified flow payload
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NormalizedEnvelope"
+  /v1/sources/health:
+    get:
+      summary: Get source health state
+      responses:
+        "200":
+          description: Source health list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/SourceHealth"
+components:
+  schemas:
+    NormalizedEnvelope:
+      type: object
+      required:
+        - metric
+        - symbol
+        - source
+        - ingest_time
+        - records
+      properties:
+        metric:
+          type: string
+          enum: [realtime, history, news, flow]
+        symbol:
+          type: string
+        source:
+          type: string
+        source_time:
+          type: string
+          nullable: true
+        ingest_time:
+          type: string
+        quality_score:
+          type: number
+        stale:
+          type: boolean
+        records:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+        metadata:
+          type: object
+          additionalProperties: true
+    SourceHealth:
+      type: object
+      properties:
+        source:
+          type: string
+        priority:
+          type: integer
+        enabled:
+          type: boolean
+        success_count:
+          type: integer
+        failure_count:
+          type: integer
+        consecutive_failures:
+          type: integer
+        last_error:
+          type: string
+          nullable: true
+        last_success_time:
+          type: string
+          nullable: true
+        last_failure_time:
+          type: string
+          nullable: true
+        circuit_open_until:
+          type: string
+          nullable: true
+        avg_latency_ms:
+          type: number
+          nullable: true
