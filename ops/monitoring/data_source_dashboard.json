@@ -1,0 +1,36 @@
+{
+  "title": "Fund Intel Data Source Dashboard",
+  "timezone": "Asia/Shanghai",
+  "datasource": "prometheus",
+  "refresh": "15s",
+  "panels": [
+    {
+      "id": 1,
+      "title": "Source Enabled",
+      "type": "stat",
+      "query": "fund_data_source_enabled"
+    },
+    {
+      "id": 2,
+      "title": "Consecutive Failures",
+      "type": "timeseries",
+      "query": "fund_data_source_consecutive_failures"
+    },
+    {
+      "id": 3,
+      "title": "Average Latency (ms)",
+      "type": "timeseries",
+      "query": "fund_data_source_avg_latency_ms"
+    },
+    {
+      "id": 4,
+      "title": "Active Alerts",
+      "type": "stat",
+      "query": "fund_data_source_alert_total"
+    }
+  ],
+  "notes": [
+    "Panel queries are served by /metrics endpoint in apps/api/report_api.py.",
+    "Critical alerts should trigger on-call notification in production alertmanager."
+  ]
+}

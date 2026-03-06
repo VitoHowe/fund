@@ -172,6 +172,8 @@
 9. P3 验收证据：`.codex/plans/current/evidence/2026-03-05_p3-factor-engine-validation.md`。
 10. P4 验收证据：`.codex/plans/current/evidence/2026-03-05_p4-backtest-validation.md`。
 11. P5 验收证据：`.codex/plans/current/evidence/2026-03-05_p5-news-fusion-validation.md`。
+12. P6 验收证据：`.codex/plans/current/evidence/2026-03-06_p6-reporting-validation.md`。
+13. P7 验收证据：`.codex/plans/current/evidence/2026-03-06_p7-governance-validation.md`。
 
 ### 3.9 新闻/财经/政策数据链路验收（2026-03-05 实测）
 
@@ -575,3 +577,35 @@ fund-intel/
 31. http://www.csrc.gov.cn/
 32. https://www.gov.cn/zhengce/zuixin/
 33. https://www.pbc.gov.cn/goutongjiaoliu/113456/113469/index.html
+
+---
+
+## 15. 执行进度（截至 2026-03-06）
+
+### 15.1 MCP 任务状态
+
+1. `5b444d70-1bbe-4a64-8bfc-9909c73e6080`（P0）已完成。
+2. `b10a778b-cbaa-4a96-a03e-4193b1508040`（P1）已完成。
+3. `ca1788c2-b7ac-471b-812d-01162f65edbb`（P2）已完成。
+4. `dc9d5e8d-a635-440c-8958-138fc98422bd`（P3）已完成。
+5. `83b0af56-58db-4654-86bc-10ab90c3167d`（P4）已完成。
+6. `4f6bab26-2e03-4bd9-b970-277914f05cda`（P5）已完成。
+7. `6ef99d01-d788-432f-82fd-52de50071e32`（P6）已完成。
+8. `d760e8c6-2544-46ec-b08e-daca131eaf8c`（P7）已完成。
+
+当前任务面板汇总：`pending=0`、`in_progress=0`、`completed=8`、`blocked=0`。
+
+### 15.2 最新交付与验收证据
+
+1. P6 验收证据：`.codex/plans/current/evidence/2026-03-06_p6-reporting-validation.md`。
+2. P7 验收证据：`.codex/plans/current/evidence/2026-03-06_p7-governance-validation.md`。
+3. 发布前补充修复：
+   - `report_api` 入口自包含（无需手工设置 `PYTHONPATH`）。
+   - `flow` 全源失败时报告服务降级为可用（不再返回 500）。
+   - API 运行时烟囱校验脚本：`scripts/check_api_runtime.py`。
+
+### 15.3 当前发布准备状态
+
+1. 本地功能链路与治理链路校验通过（P1-P7 check 脚本通过）。
+2. 运行时独立性校验通过（不依赖 MCP）。
+3. Docker 镜像构建/运行命令已准备；当前环境未安装 Docker CLI，容器实测待在具备 Docker 的环境执行。
