@@ -1,0 +1,18 @@
+services:
+  fund-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: fund-api
+    command: ["python", "apps/api/report_api.py"]
+    ports:
+      - "18010:8010"
+    restart: unless-stopped
+    mem_limit: 768m
+    memswap_limit: 1024m
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request,sys;sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8010/health', timeout=3).getcode()==200 else 1)"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 20s

@@ -10,10 +10,13 @@ COPY pyproject.toml README.md /app/
 COPY services /app/services
 COPY scripts /app/scripts
 COPY docs /app/docs
+COPY apps /app/apps
+COPY config /app/config
 
 RUN pip install --no-cache-dir --upgrade pip \
     && pip install --no-cache-dir .
 
+EXPOSE 8010
+
 # Default command validates runtime independence and data hub connectivity baseline.
 CMD ["sh", "-c", "python scripts/check_runtime_independence.py && python scripts/check_p1_data_hub.py"]
-
