@@ -1,0 +1,184 @@
+{
+  "kind": "strategy_profiles",
+  "default_id": "score-threshold-default",
+  "items": [
+    {
+      "id": "score-threshold-default",
+      "name": "Score Threshold",
+      "strategy_type": "score_threshold",
+      "enabled": true,
+      "is_default": true,
+      "weight": 1.0,
+      "params": {
+        "buy_threshold": 62.0,
+        "sell_threshold": 45.0,
+        "min_confidence": 0.55
+      },
+      "profile_revision": 3,
+      "updated_at": "2026-03-06T18:57:39.269649+00:00",
+      "history": [
+        {
+          "id": "score-threshold-default",
+          "name": "Score Threshold",
+          "strategy_type": "score_threshold",
+          "enabled": true,
+          "is_default": true,
+          "weight": 1.0,
+          "params": {
+            "buy_threshold": 62.0,
+            "sell_threshold": 45.0,
+            "min_confidence": 0.55
+          },
+          "profile_revision": 2,
+          "profile_version": "p2:777207cf",
+          "updated_at": "2026-03-06T18:52:23.394611+00:00"
+        },
+        {
+          "id": "score-threshold-default",
+          "name": "Score Threshold",
+          "strategy_type": "score_threshold",
+          "enabled": true,
+          "is_default": true,
+          "weight": 1.0,
+          "params": {
+            "buy_threshold": 62.0,
+            "sell_threshold": 45.0,
+            "min_confidence": 0.55
+          },
+          "profile_revision": 1,
+          "profile_version": "p1:bootstrap-threshold",
+          "updated_at": "2026-03-07T00:00:00+00:00"
+        }
+      ],
+      "profile_version": "p3:559c393d"
+    },
+    {
+      "id": "score-momentum-default",
+      "name": "Score Momentum",
+      "strategy_type": "score_momentum",
+      "enabled": true,
+      "is_default": false,
+      "weight": 1.0,
+      "params": {
+        "entry_score": 55.0,
+        "exit_score": 43.0,
+        "momentum_window": 3,
+        "min_acceleration": 1.5
+      },
+      "profile_revision": 1,
+      "profile_version": "p1:bootstrap-momentum",
+      "updated_at": "2026-03-07T00:00:00+00:00",
+      "history": []
+    }
+  ],
+  "history": [
+    {
+      "kind": "strategy_profiles",
+      "version": "r2:cf8187ab00",
+      "updated_at": "2026-03-06T18:52:23.397651+00:00",
+      "default_id": "score-threshold-default",
+      "items": [
+        {
+          "id": "score-threshold-default",
+          "name": "Score Threshold",
+          "strategy_type": "score_threshold",
+          "enabled": true,
+          "is_default": true,
+          "weight": 1.0,
+          "params": {
+            "buy_threshold": 62.0,
+            "sell_threshold": 45.0,
+            "min_confidence": 0.55
+          },
+          "profile_revision": 2,
+          "updated_at": "2026-03-06T18:52:23.394611+00:00",
+          "history": [
+            {
+              "id": "score-threshold-default",
+              "name": "Score Threshold",
+              "strategy_type": "score_threshold",
+              "enabled": true,
+              "is_default": true,
+              "weight": 1.0,
+              "params": {
+                "buy_threshold": 62.0,
+                "sell_threshold": 45.0,
+                "min_confidence": 0.55
+              },
+              "profile_revision": 1,
+              "profile_version": "p1:bootstrap-threshold",
+              "updated_at": "2026-03-07T00:00:00+00:00"
+            }
+          ],
+          "profile_version": "p2:777207cf"
+        },
+        {
+          "id": "score-momentum-default",
+          "name": "Score Momentum",
+          "strategy_type": "score_momentum",
+          "enabled": true,
+          "is_default": false,
+          "weight": 1.0,
+          "params": {
+            "entry_score": 55.0,
+            "exit_score": 43.0,
+            "momentum_window": 3,
+            "min_acceleration": 1.5
+          },
+          "profile_revision": 1,
+          "profile_version": "p1:bootstrap-momentum",
+          "updated_at": "2026-03-07T00:00:00+00:00",
+          "history": []
+        }
+      ],
+      "revision": 2
+    },
+    {
+      "kind": "strategy_profiles",
+      "version": "r1:bootstrap-strategies",
+      "updated_at": "2026-03-07T00:00:00+00:00",
+      "default_id": "score-threshold-default",
+      "items": [
+        {
+          "id": "score-threshold-default",
+          "name": "Score Threshold",
+          "strategy_type": "score_threshold",
+          "enabled": true,
+          "is_default": true,
+          "weight": 1.0,
+          "params": {
+            "buy_threshold": 62.0,
+            "sell_threshold": 45.0,
+            "min_confidence": 0.55
+          },
+          "profile_revision": 1,
+          "profile_version": "p1:bootstrap-threshold",
+          "updated_at": "2026-03-07T00:00:00+00:00",
+          "history": []
+        },
+        {
+          "id": "score-momentum-default",
+          "name": "Score Momentum",
+          "strategy_type": "score_momentum",
+          "enabled": true,
+          "is_default": false,
+          "weight": 1.0,
+          "params": {
+            "entry_score": 55.0,
+            "exit_score": 43.0,
+            "momentum_window": 3,
+            "min_acceleration": 1.5
+          },
+          "profile_revision": 1,
+          "profile_version": "p1:bootstrap-momentum",
+          "updated_at": "2026-03-07T00:00:00+00:00",
+          "history": []
+        }
+      ],
+      "revision": 1
+    }
+  ],
+  "updated_at": "2026-03-06T18:57:39.271815+00:00",
+  "revision": 3,
+  "version": "r3:cdfa9cd662"
+}

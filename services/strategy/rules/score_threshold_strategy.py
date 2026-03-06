@@ -16,10 +16,12 @@ class ScoreThresholdStrategy(IStrategy):
         buy_threshold: float = 62.0,
         sell_threshold: float = 45.0,
         min_confidence: float = 0.55,
+        strategy_name: str | None = None,
     ) -> None:
         self.buy_threshold = float(buy_threshold)
         self.sell_threshold = float(sell_threshold)
         self.min_confidence = float(min_confidence)
+        self.name = strategy_name or self.name
 
     def generate(
         self,

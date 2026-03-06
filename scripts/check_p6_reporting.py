@@ -62,7 +62,11 @@ def main() -> None:
 
     etf_page = ROOT / "apps" / "web" / "src" / "pages" / "etf-report.tsx"
     detail_page = ROOT / "apps" / "web" / "src" / "pages" / "fund-detail.tsx"
-    assert etf_page.exists() and detail_page.exists(), "frontend pages should exist"
+    static_shell = ROOT / "apps" / "web" / "static" / "index.html"
+    static_app = ROOT / "apps" / "web" / "static" / "app.js"
+    static_styles = ROOT / "apps" / "web" / "static" / "styles.css"
+    assert etf_page.exists() and detail_page.exists(), "frontend prototype pages should exist"
+    assert static_shell.exists() and static_app.exists() and static_styles.exists(), "admin console assets should exist"
     output = {
         "checks": {
             "daily_report_generated": True,
@@ -71,6 +75,7 @@ def main() -> None:
             "export_markdown_html_pdf": True,
             "export_content_consistent": True,
             "frontend_pages_present": True,
+            "admin_console_assets_present": True,
         },
         "report_id": report.report_id,
         "report_date": report.report_date,

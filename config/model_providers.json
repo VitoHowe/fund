@@ -1,0 +1,109 @@
+{
+  "kind": "model_providers",
+  "default_id": "mock-openai",
+  "items": [
+    {
+      "id": "openai-default",
+      "name": "OpenAI Default",
+      "url": "https://api.openai.com/v1",
+      "apiKey": "",
+      "model": "gpt-4.1-mini",
+      "enabled": false,
+      "is_default": false,
+      "updated_at": "2026-03-07T00:00:00+00:00"
+    },
+    {
+      "id": "gemini-default",
+      "name": "Gemini Default",
+      "url": "https://generativelanguage.googleapis.com",
+      "apiKey": "",
+      "model": "gemini-2.0-flash",
+      "enabled": false,
+      "is_default": false,
+      "updated_at": "2026-03-07T00:00:00+00:00"
+    },
+    {
+      "id": "mock-openai",
+      "name": "Mock OpenAI",
+      "url": "http://127.0.0.1:8021/v1",
+      "apiKey": "test-key",
+      "model": "mock-model",
+      "enabled": true,
+      "is_default": true,
+      "updated_at": "2026-03-06T18:57:37.124756+00:00"
+    }
+  ],
+  "history": [
+    {
+      "kind": "model_providers",
+      "version": "r2:37895dcc5f",
+      "updated_at": "2026-03-06T18:52:21.249884+00:00",
+      "default_id": "mock-openai",
+      "items": [
+        {
+          "id": "openai-default",
+          "name": "OpenAI Default",
+          "url": "https://api.openai.com/v1",
+          "apiKey": "",
+          "model": "gpt-4.1-mini",
+          "enabled": false,
+          "is_default": false,
+          "updated_at": "2026-03-07T00:00:00+00:00"
+        },
+        {
+          "id": "gemini-default",
+          "name": "Gemini Default",
+          "url": "https://generativelanguage.googleapis.com",
+          "apiKey": "",
+          "model": "gemini-2.0-flash",
+          "enabled": false,
+          "is_default": false,
+          "updated_at": "2026-03-07T00:00:00+00:00"
+        },
+        {
+          "id": "mock-openai",
+          "name": "Mock OpenAI",
+          "url": "http://127.0.0.1:8021/v1",
+          "apiKey": "test-key",
+          "model": "mock-model",
+          "enabled": true,
+          "is_default": true,
+          "updated_at": "2026-03-06T18:52:21.249394+00:00"
+        }
+      ],
+      "revision": 2
+    },
+    {
+      "kind": "model_providers",
+      "version": "r1:bootstrap-models",
+      "updated_at": "2026-03-07T00:00:00+00:00",
+      "default_id": "openai-default",
+      "items": [
+        {
+          "id": "openai-default",
+          "name": "OpenAI Default",
+          "url": "https://api.openai.com/v1",
+          "apiKey": "",
+          "model": "gpt-4.1-mini",
+          "enabled": false,
+          "is_default": true,
+          "updated_at": "2026-03-07T00:00:00+00:00"
+        },
+        {
+          "id": "gemini-default",
+          "name": "Gemini Default",
+          "url": "https://generativelanguage.googleapis.com",
+          "apiKey": "",
+          "model": "gemini-2.0-flash",
+          "enabled": false,
+          "is_default": false,
+          "updated_at": "2026-03-07T00:00:00+00:00"
+        }
+      ],
+      "revision": 1
+    }
+  ],
+  "updated_at": "2026-03-06T18:57:37.125074+00:00",
+  "revision": 3,
+  "version": "r3:a57ad9bb03"
+}

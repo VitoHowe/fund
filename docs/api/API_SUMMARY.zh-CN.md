@@ -19,11 +19,33 @@
 | 契约 | `GET` | `/v1/data/flow` | 查询基金/板块资金流 | OpenAPI 已定义，运行时未在 `report_api.py` 暴露 |
 | 契约 | `GET` | `/v1/sources/health` | 查询数据源健康状态 | OpenAPI 已定义，运行时存在近似实现 `/api/monitor/data-sources` |
 | 运行时 | `GET` | `/health` | API 存活检查 | 已实现 |
+| 运行时 | `POST` | `/api/auth/login` | 密码登录并写入会话 Cookie | 已实现 |
+| 运行时 | `POST` | `/api/auth/logout` | 注销当前会话 | 已实现 |
+| 运行时 | `GET` | `/api/auth/session` | 获取当前登录态与配置版本 | 已实现 |
 | 运行时 | `GET` | `/api/monitor/data-sources` | 获取全链路数据源状态与告警 | 已实现 |
+| 运行时 | `GET` | `/api/monitor/audit-events` | 获取最近数据源切换与告警审计事件 | 已实现 |
 | 运行时 | `GET` | `/metrics` | 导出 Prometheus 文本指标 | 已实现 |
 | 运行时 | `GET` | `/api/report/daily` | 生成当日基金/ETF 量化日报 | 已实现 |
+| 运行时 | `POST` | `/api/report/daily/generate` | 显式生成今日报告 | 已实现 |
+| 运行时 | `GET` | `/api/report/daily/latest` | 读取最近一次已生成的今日报告 | 已实现 |
 | 运行时 | `GET` | `/api/report/fund-detail` | 生成单基金分析详情 | 已实现 |
 | 运行时 | `GET` | `/api/report/export` | 导出日报 Markdown/HTML/PDF | 已实现 |
+| 运行时 | `GET` | `/api/settings/models` | 查询模型配置列表（脱敏） | 已实现 |
+| 运行时 | `POST` | `/api/settings/models` | 新增模型配置 | 已实现 |
+| 运行时 | `PUT` | `/api/settings/models/{provider_id}` | 更新模型配置 | 已实现 |
+| 运行时 | `POST` | `/api/settings/models/{provider_id}/default` | 设置默认模型 | 已实现 |
+| 运行时 | `POST` | `/api/settings/models/{provider_id}/enabled` | 启停模型配置 | 已实现 |
+| 运行时 | `POST` | `/api/settings/models/{provider_id}/test` | 测试连通性/鉴权/模型可用性 | 已实现 |
+| 运行时 | `POST` / `GET` | `/api/settings/models/reload` | 触发或确认模型配置热更新 | 已实现 |
+| 运行时 | `GET` | `/api/settings/strategies` | 查询策略配置列表 | 已实现 |
+| 运行时 | `POST` | `/api/settings/strategies` | 新增策略配置 | 已实现 |
+| 运行时 | `PUT` | `/api/settings/strategies/{strategy_id}` | 更新策略配置 | 已实现 |
+| 运行时 | `POST` | `/api/settings/strategies/{strategy_id}/default` | 设置默认策略 | 已实现 |
+| 运行时 | `POST` | `/api/settings/strategies/{strategy_id}/enabled` | 启停策略 | 已实现 |
+| 运行时 | `POST` | `/api/settings/strategies/{strategy_id}/rollback` | 按历史版本回滚策略 | 已实现 |
+| 运行时 | `POST` | `/api/settings/strategies/{strategy_id}/replay-tune` | 离线回放并写回推荐参数 | 已实现 |
+| 运行时 | `POST` / `GET` | `/api/settings/strategies/reload` | 触发或确认策略热更新 | 已实现 |
+| 运行时 | `GET` | `/api/settings/runtime` | 读取模型/策略配置版本摘要 | 已实现 |
 
 ## 3. 契约接口
 
@@ -214,7 +236,7 @@
 
 ### 4.2 `GET /api/monitor/data-sources`
 
-用途：返回全链路数据源状态、整体健康判断和告警列表。该接口可直接用于报表页展示“数据源状态”模块。
+用途：返回全链路数据源状态、整体健康判断、告警列表和最近审计事件。该接口可直接用于报表页展示“数据源状态”模块。
 
 参数：无。
 
@@ -252,7 +274,46 @@
       "metric": "all",
       "triggered_at_utc": "2026-03-07T01:44:10.000000+00:00"
     }
-  ]
+  ],
+  "recent_audit_events": [
+    {
+      "time": "2026-03-07T01:44:08.000000+00:00",
+      "metric": "news",
+      "symbol": null,
+      "selected_source": "akshare",
+      "failed_sources": [
+        "eastmoney",
+        "efinance"
+      ],
+      "reason": "fallback activated"
+    }
+  ],
+  "audit_event_count": 1
+}
+```
+
+### 4.2.1 `GET /api/monitor/audit-events`
+
+用途：返回最近数据源切换与告警事件，便于管理台审计与问题追踪。
+
+返回结构示例：
+
+```json
+{
+  "events": [
+    {
+      "time": "2026-03-07T01:44:08.000000+00:00",
+      "metric": "news",
+      "symbol": null,
+      "selected_source": "akshare",
+      "failed_sources": [
+        "eastmoney",
+        "efinance"
+      ],
+      "reason": "fallback activated"
+    }
+  ],
+  "captured_at_utc": "2026-03-07T01:44:10.000000+00:00"
 }
 ```
 
@@ -370,6 +431,30 @@ fund_data_source_alert_total{level="warning"} 1
 }
 ```
 
+### 4.4.1 `POST /api/report/daily/generate`
+
+用途：显式触发今日报告生成。当前仍为同步实现，但语义上已与“读取最近报告”分离。
+
+请求体示例：
+
+```json
+{
+  "symbols": "014943,159870",
+  "market_state": "neutral"
+}
+```
+
+返回结构：与 `GET /api/report/daily` 一致。
+
+### 4.4.2 `GET /api/report/daily/latest`
+
+用途：返回最近一次成功生成并缓存到文件的日报对象。
+
+说明：
+
+1. 如果当前没有缓存文件，接口会按默认参数生成一次并返回。
+2. 缓存文件位于 `data/reports/`。
+
 ### 4.5 `GET /api/report/fund-detail`
 
 用途：返回单基金详情，底层复用日报生成逻辑，只抽取目标基金的 `detail`。
@@ -428,6 +513,143 @@ Content-Type: text/markdown; charset=utf-8
 Content-Disposition: attachment; filename=rpt-20260307-094500.md
 ```
 
+### 4.7 `POST /api/auth/login`
+
+用途：密码登录并写入会话 Cookie。
+
+请求体示例：
+
+```json
+{
+  "password": "fund-admin"
+}
+```
+
+返回结构示例：
+
+```json
+{
+  "ok": true,
+  "authenticated": true,
+  "session": {
+    "username": "admin",
+    "created_at": "2026-03-07T01:50:00+00:00",
+    "expires_at": "2026-03-07T13:50:00Z"
+  }
+}
+```
+
+### 4.8 `POST /api/auth/logout`
+
+用途：清除当前会话。
+
+### 4.9 `GET /api/auth/session`
+
+用途：返回当前登录态以及模型/策略配置版本摘要。
+
+### 4.10 `GET /api/settings/models`
+
+用途：返回模型配置列表。核心统一字段为 `url` / `apiKey` / `model`，其中 `apiKey` 返回时已脱敏。
+
+### 4.11 `POST /api/settings/models`
+
+用途：新增模型配置。
+
+请求体示例：
+
+```json
+{
+  "id": "mock-openai",
+  "name": "Mock OpenAI",
+  "url": "http://127.0.0.1:8021/v1",
+  "apiKey": "test-key",
+  "model": "mock-model",
+  "enabled": true,
+  "is_default": true
+}
+```
+
+### 4.12 `PUT /api/settings/models/{provider_id}`
+
+用途：更新模型配置。更新时 `apiKey` 可留空以保留旧值。
+
+### 4.13 `POST /api/settings/models/{provider_id}/default`
+
+用途：设定默认模型配置。
+
+### 4.14 `POST /api/settings/models/{provider_id}/enabled`
+
+用途：切换启停状态。
+
+### 4.15 `POST /api/settings/models/{provider_id}/test`
+
+用途：执行模型连接测试，返回三段结果：
+
+1. `connectivity`
+2. `auth`
+3. `model`
+
+该接口同时适配 Gemini、OpenAI 与 OpenAI compatible 网关。
+
+### 4.16 `GET/POST /api/settings/models/reload`
+
+用途：重新载入模型配置文件并返回当前版本摘要。
+
+### 4.17 `GET /api/settings/strategies`
+
+用途：返回策略配置列表，包括：
+
+- `strategy_type`
+- `params`
+- `weight`
+- `enabled`
+- `is_default`
+- `profile_version`
+- `history`
+
+### 4.18 `POST /api/settings/strategies`
+
+用途：新增策略配置。
+
+### 4.19 `PUT /api/settings/strategies/{strategy_id}`
+
+用途：更新策略参数或权重。
+
+### 4.20 `POST /api/settings/strategies/{strategy_id}/default`
+
+用途：设置默认策略。
+
+### 4.21 `POST /api/settings/strategies/{strategy_id}/enabled`
+
+用途：切换策略启停状态。
+
+### 4.22 `POST /api/settings/strategies/{strategy_id}/rollback`
+
+用途：按历史 `profile_version` 回滚到旧版本，并生成新的当前版本。
+
+### 4.23 `POST /api/settings/strategies/{strategy_id}/replay-tune`
+
+用途：基于现有历史量化数据做离线回放和参数调优，并可把推荐参数直接写回新版本。
+
+请求体示例：
+
+```json
+{
+  "symbols": "014943",
+  "market_state": "neutral",
+  "limit": 60,
+  "persist": true
+}
+```
+
+### 4.24 `GET/POST /api/settings/strategies/reload`
+
+用途：强制重载策略配置文件。
+
+### 4.25 `GET /api/settings/runtime`
+
+用途：读取模型与策略配置的版本摘要，供管理台显示当前运行时生效状态。
+
 ## 5. 运行方式
 
 ### 5.1 本机启动
@@ -457,21 +679,32 @@ Invoke-WebRequest "http://127.0.0.1:8010/health"
 Invoke-WebRequest "http://127.0.0.1:8010/api/report/daily?symbols=014943,159870&market_state=neutral"
 ```
 
+### 5.3 管理台页面
+
+当前服务直接分发管理台页面：
+
+- `http://127.0.0.1:8010/login`
+- `http://127.0.0.1:8010/dashboard/today`
+- `http://127.0.0.1:8010/fund/014943`
+- `http://127.0.0.1:8010/settings/models`
+- `http://127.0.0.1:8010/settings/strategy`
+
 ## 6. 验证方式
 
 推荐最小验证顺序：
 
-1. 启动运行时 API：`python apps/api/report_api.py`
-2. 执行运行时 smoke test：`python scripts/check_api_runtime.py`
-3. 执行报表模块校验：`python scripts/check_p6_reporting.py`
-4. 如需验证权重热更新基础能力：`python scripts/check_p3_factor_engine.py`
+1. 安装依赖：`python -m pip install -e .`
+2. 启动运行时 API：`python apps/api/report_api.py`
+3. 执行运行时 smoke test：`python scripts/check_api_runtime.py`
+4. 执行报表模块校验：`python scripts/check_p6_reporting.py`
+5. 如需验证权重热更新基础能力：`python scripts/check_p3_factor_engine.py`
 
 ## 7. 当前限制
 
 1. `docs/api/openapi.yaml` 与 `apps/api/report_api.py` 尚未统一，报表类接口没有进入 OpenAPI 契约。
-2. 当前没有登录、权限、会话控制，`/metrics`、`/api/report/*`、`/api/monitor/*` 都是匿名可访问。
-3. 运行时接口为同步计算；日报生成、导出与监控接口都没有任务队列、缓存键管理或异步轮询机制。
-4. `/api/report/daily` 与 `/api/report/fund-detail` 使用了内置默认值，并且写死了 `014943 -> 159870` 的代理映射。
-5. 当前没有“模型配置中心”相关接口，也没有 Gemini/OpenAI/自定义兼容模型的配置存储与校验能力。
-6. 前端原型页仅覆盖日报与单基金页面，尚未接入登录、配置中心、报表导出状态、错误边界与全局导航。
+2. 当前认证为最小可用方案，默认开发密码是 `fund-admin`；生产环境必须覆盖。
+3. 运行时接口仍以同步计算为主；离线调优也是同步接口，重负载场景后续应演进为异步任务。
+4. `/api/report/daily` 与 `/api/report/fund-detail` 仍使用内置默认值，并且保留了 `014943 -> 159870` 的代理映射。
+5. 模型连接测试当前通过 provider endpoint 适配实现，适合 MVP 与网关联调，不是完整 SLA 探针系统。
+6. 管理台为服务端直出静态资源方案，优点是部署简单，缺点是前端工程化能力有限。
 7. PDF 导出为轻量文本实现，适合作为占位能力，不适合复杂版式或高保真报告。

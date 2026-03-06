@@ -17,6 +17,7 @@ from services.reporting.template_engine import (
     SectorRankingItem,
 )
 from services.strategy import ScoreMomentumStrategy, ScoreThresholdStrategy
+from services.strategy.base_strategy import IStrategy
 
 
 @dataclass(slots=True)
@@ -37,12 +38,14 @@ class DailyReportService:
         news_service: NewsFusionService,
         backtest_runner: BacktestRunner,
         template_engine: ReportTemplateEngine | None = None,
+        strategy_provider: Any | None = None,
     ) -> None:
         self.source_manager = source_manager
         self.factor_scorer = factor_scorer
         self.news_service = news_service
         self.backtest_runner = backtest_runner
         self.template_engine = template_engine or ReportTemplateEngine()
+        self.strategy_provider = strategy_provider
         self._last_sector_flow_error: str | None = None
 
     def generate_daily_report(
@@ -57,6 +60,7 @@ class DailyReportService:
         now = datetime.now(timezone.utc)
         report_date = now.astimezone().strftime("%Y-%m-%d")
         report_id = f"rpt-{report_date.replace('-', '')}-{now.strftime('%H%M%S')}"
+        active_strategies = self._resolve_strategies()
 
         processed_items, source_stats, raw_news_count = self.news_service.collect_items(limit=opts.news_limit)
         ranking_rows: list[RankingItem] = []
@@ -91,7 +95,7 @@ class DailyReportService:
             if opts.include_backtest:
                 backtest = self.backtest_runner.run(
                     symbol=symbol,
-                    strategies=[ScoreThresholdStrategy(), ScoreMomentumStrategy()],
+                    strategies=active_strategies,
                     market_state=opts.market_state,
                     proxy_symbol=proxy_symbol_map.get(symbol),
                     limit=opts.backtest_limit,
@@ -130,6 +134,7 @@ class DailyReportService:
             "symbols": symbols,
             "market_state": opts.market_state,
             "sector_flow_error": self._last_sector_flow_error,
+            "strategies": [strategy.name for strategy in active_strategies],
         }
         return DailyReport(
             report_id=report_id,
@@ -153,6 +158,13 @@ class DailyReportService:
         except Exception:
             pass
         return symbol
+
+    def _resolve_strategies(self) -> list[IStrategy]:
+        if callable(self.strategy_provider):
+            strategies = list(self.strategy_provider() or [])
+            if strategies:
+                return strategies
+        return [ScoreThresholdStrategy(), ScoreMomentumStrategy()]
 
     def export_report(self, report: DailyReport, fmt: str) -> bytes:
         key = fmt.strip().lower()

@@ -1,0 +1,352 @@
+:root {
+  --bg: #f2efe8;
+  --panel: rgba(255, 255, 255, 0.92);
+  --panel-strong: #ffffff;
+  --line: rgba(38, 34, 28, 0.12);
+  --text: #1e1a16;
+  --muted: #6a6158;
+  --brand: #0f766e;
+  --brand-strong: #115e59;
+  --warn: #b45309;
+  --danger: #b42318;
+  --ok: #027a48;
+  --shadow: 0 22px 60px rgba(35, 26, 15, 0.12);
+  --radius: 22px;
+  --radius-sm: 14px;
+  --font: "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  font-family: var(--font);
+  color: var(--text);
+  background:
+    radial-gradient(circle at top right, rgba(15, 118, 110, 0.18), transparent 32%),
+    radial-gradient(circle at left 20%, rgba(180, 83, 9, 0.12), transparent 25%),
+    linear-gradient(180deg, #faf7f1 0%, #ede8dc 100%);
+}
+
+a {
+  color: inherit;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+#app {
+  min-height: 100vh;
+}
+
+.shell {
+  max-width: 1240px;
+  margin: 0 auto;
+  padding: 28px 20px 40px;
+}
+
+.hero {
+  display: flex;
+  justify-content: space-between;
+  gap: 24px;
+  align-items: flex-start;
+  margin-bottom: 24px;
+}
+
+.hero-card,
+.panel,
+.metric,
+.status-card,
+.table-card,
+.detail-card {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  backdrop-filter: blur(16px);
+}
+
+.hero-card {
+  padding: 26px 28px;
+  flex: 1;
+}
+
+.eyebrow {
+  display: inline-flex;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: rgba(15, 118, 110, 0.12);
+  color: var(--brand-strong);
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.hero h1,
+.login h1 {
+  margin: 14px 0 12px;
+  font-size: clamp(28px, 4vw, 42px);
+  line-height: 1.06;
+}
+
+.hero p,
+.muted,
+.subtle {
+  color: var(--muted);
+}
+
+.nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 18px 0 0;
+}
+
+.nav a,
+.ghost-button,
+.button {
+  text-decoration: none;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  padding: 10px 16px;
+  transition: 0.2s ease;
+  cursor: pointer;
+}
+
+.nav a {
+  background: rgba(255, 255, 255, 0.72);
+}
+
+.nav a.active,
+.nav a:hover,
+.ghost-button:hover {
+  border-color: rgba(15, 118, 110, 0.24);
+  color: var(--brand-strong);
+}
+
+.button {
+  background: linear-gradient(135deg, var(--brand) 0%, #0f766e 50%, #125b54 100%);
+  color: #fff;
+}
+
+.button:hover {
+  background: linear-gradient(135deg, #0f6f67 0%, #0e615a 100%);
+}
+
+.ghost-button {
+  background: rgba(255, 255, 255, 0.65);
+  color: var(--text);
+  border-color: var(--line);
+}
+
+.button.danger,
+.badge.badge-danger {
+  background: var(--danger);
+  color: #fff;
+}
+
+.button.warn {
+  background: var(--warn);
+  color: #fff;
+}
+
+.section-grid {
+  display: grid;
+  gap: 18px;
+}
+
+.section-grid.columns-4 {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.section-grid.columns-2 {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.metric {
+  padding: 20px;
+}
+
+.metric strong {
+  display: block;
+  font-size: 28px;
+  margin-top: 12px;
+}
+
+.panel {
+  padding: 22px;
+}
+
+.panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.toolbar,
+.form-grid {
+  display: grid;
+  gap: 12px;
+}
+
+.toolbar {
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+}
+
+.form-grid.two {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.field label {
+  font-size: 14px;
+  color: var(--muted);
+}
+
+.field input,
+.field select,
+.field textarea {
+  padding: 12px 14px;
+  border: 1px solid rgba(38, 34, 28, 0.18);
+  border-radius: var(--radius-sm);
+  background: rgba(255, 255, 255, 0.88);
+  min-height: 46px;
+}
+
+.field textarea {
+  min-height: 120px;
+  resize: vertical;
+}
+
+.status-row,
+.actions,
+.stack {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.table-card {
+  overflow: hidden;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+th,
+td {
+  padding: 14px 16px;
+  text-align: left;
+  border-bottom: 1px solid rgba(38, 34, 28, 0.08);
+  vertical-align: top;
+}
+
+thead {
+  background: rgba(30, 26, 22, 0.04);
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  background: rgba(15, 118, 110, 0.12);
+  color: var(--brand-strong);
+}
+
+.badge-warning {
+  background: rgba(180, 83, 9, 0.16);
+  color: var(--warn);
+}
+
+.badge-critical {
+  background: rgba(180, 35, 24, 0.14);
+  color: var(--danger);
+}
+
+.badge-ok {
+  background: rgba(2, 122, 72, 0.12);
+  color: var(--ok);
+}
+
+.status-card {
+  padding: 18px;
+}
+
+.login-wrap {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+}
+
+.login {
+  width: min(520px, 100%);
+  padding: 28px;
+  background: var(--panel-strong);
+  border-radius: 28px;
+  box-shadow: var(--shadow);
+  border: 1px solid rgba(38, 34, 28, 0.08);
+}
+
+.message {
+  padding: 12px 14px;
+  border-radius: var(--radius-sm);
+  margin-bottom: 12px;
+}
+
+.message.error {
+  background: rgba(180, 35, 24, 0.12);
+  color: var(--danger);
+}
+
+.message.success {
+  background: rgba(2, 122, 72, 0.1);
+  color: var(--ok);
+}
+
+.split {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr;
+  gap: 18px;
+}
+
+pre {
+  white-space: pre-wrap;
+  word-break: break-word;
+  background: rgba(30, 26, 22, 0.04);
+  padding: 14px;
+  border-radius: 14px;
+  border: 1px solid rgba(38, 34, 28, 0.06);
+  margin: 0;
+}
+
+@media (max-width: 960px) {
+  .section-grid.columns-4,
+  .section-grid.columns-2,
+  .split,
+  .form-grid.two {
+    grid-template-columns: 1fr;
+  }
+
+  .hero {
+    flex-direction: column;
+  }
+}

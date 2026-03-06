@@ -1,10 +1,11 @@
 openapi: 3.0.3
 info:
   title: Fund Intel API
-  version: 0.1.0
-  description: Data hub API contracts for fund intelligence platform.
+  version: 0.2.0
+  description: >
+    Data hub contracts and runtime admin/report APIs for the fund intelligence platform.
 servers:
-  - url: http://localhost:8000
+  - url: http://localhost:8010
 paths:
   /v1/data/realtime/{symbol}:
     get:
@@ -33,7 +34,6 @@ paths:
             type: string
         - name: limit
           in: query
-          required: false
           schema:
             type: integer
             default: 30
@@ -50,12 +50,10 @@ paths:
       parameters:
         - name: symbol
           in: query
-          required: false
           schema:
             type: string
         - name: limit
           in: query
-          required: false
           schema:
             type: integer
             default: 20
@@ -72,7 +70,6 @@ paths:
       parameters:
         - name: symbol
           in: query
-          required: false
           schema:
             type: string
       responses:
@@ -94,16 +91,472 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/SourceHealth"
+  /health:
+    get:
+      summary: Runtime health check
+      responses:
+        "200":
+          description: Service is ready
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  service:
+                    type: string
+  /api/auth/login:
+    post:
+      summary: Login and create admin session cookie
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginRequest"
+      responses:
+        "200":
+          description: Login success
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthSessionResponse"
+  /api/auth/logout:
+    post:
+      summary: Logout current admin session
+      responses:
+        "200":
+          description: Logout success
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SimpleOk"
+  /api/auth/session:
+    get:
+      summary: Get current admin session state and runtime config versions
+      responses:
+        "200":
+          description: Session information
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthSessionInfo"
+  /api/monitor/data-sources:
+    get:
+      summary: Get current source health, alerts and recent audit events
+      responses:
+        "200":
+          description: Monitor snapshot
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MonitorSnapshot"
+  /api/monitor/audit-events:
+    get:
+      summary: Get recent audit events from source failover and routing
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+      responses:
+        "200":
+          description: Recent audit events
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  events:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/AuditEvent"
+                  captured_at_utc:
+                    type: string
+  /metrics:
+    get:
+      summary: Prometheus metrics export
+      responses:
+        "200":
+          description: Metrics payload
+          content:
+            text/plain:
+              schema:
+                type: string
+  /api/report/daily:
+    get:
+      summary: Generate current daily report synchronously
+      parameters:
+        - name: symbols
+          in: query
+          schema:
+            type: string
+            default: 014943,159870
+        - name: market_state
+          in: query
+          schema:
+            type: string
+            default: neutral
+      responses:
+        "200":
+          description: Daily report
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DailyReport"
+  /api/report/daily/generate:
+    post:
+      summary: Generate a daily report explicitly
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ReportRequest"
+      responses:
+        "200":
+          description: Daily report
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DailyReport"
+  /api/report/daily/latest:
+    get:
+      summary: Get latest cached daily report
+      responses:
+        "200":
+          description: Latest daily report
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DailyReport"
+  /api/report/fund-detail:
+    get:
+      summary: Get single fund detail report
+      parameters:
+        - name: symbol
+          in: query
+          schema:
+            type: string
+            default: "014943"
+      responses:
+        "200":
+          description: Fund detail response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FundDetailResponse"
+  /api/report/export:
+    get:
+      summary: Export report as md/html/pdf
+      parameters:
+        - name: symbols
+          in: query
+          schema:
+            type: string
+        - name: market_state
+          in: query
+          schema:
+            type: string
+        - name: format
+          in: query
+          schema:
+            type: string
+            enum: [md, html, pdf]
+            default: md
+      responses:
+        "200":
+          description: Exported report file
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+  /api/settings/models:
+    get:
+      summary: List masked model settings
+      responses:
+        "200":
+          description: Model settings
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ModelSettingsResponse"
+    post:
+      summary: Create a model setting
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ModelConfigInput"
+      responses:
+        "201":
+          description: Updated model settings
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ModelSettingsResponse"
+  /api/settings/models/reload:
+    get:
+      summary: Read current model settings after reload
+      responses:
+        "200":
+          description: Model settings
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ModelSettingsResponse"
+    post:
+      summary: Force reload model settings
+      responses:
+        "200":
+          description: Model settings
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ModelSettingsResponse"
+  /api/settings/models/{provider_id}:
+    put:
+      summary: Update a model setting
+      parameters:
+        - name: provider_id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ModelConfigInput"
+      responses:
+        "200":
+          description: Updated model settings
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ModelSettingsResponse"
+  /api/settings/models/{provider_id}/default:
+    post:
+      summary: Set default model setting
+      parameters:
+        - name: provider_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Updated model settings
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ModelSettingsResponse"
+  /api/settings/models/{provider_id}/enabled:
+    post:
+      summary: Enable or disable a model setting
+      parameters:
+        - name: provider_id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EnabledToggle"
+      responses:
+        "200":
+          description: Updated model settings
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ModelSettingsResponse"
+  /api/settings/models/{provider_id}/test:
+    post:
+      summary: Test model connectivity, auth and model availability
+      parameters:
+        - name: provider_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Model connectivity result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ModelTestResponse"
+  /api/settings/strategies:
+    get:
+      summary: List strategy profiles
+      responses:
+        "200":
+          description: Strategy settings
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StrategySettingsResponse"
+    post:
+      summary: Create a strategy profile
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/StrategyProfileInput"
+      responses:
+        "201":
+          description: Updated strategy settings
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StrategySettingsResponse"
+  /api/settings/strategies/reload:
+    get:
+      summary: Read current strategy settings after reload
+      responses:
+        "200":
+          description: Strategy settings
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StrategySettingsResponse"
+    post:
+      summary: Force reload strategy settings
+      responses:
+        "200":
+          description: Strategy settings
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StrategySettingsResponse"
+  /api/settings/strategies/{strategy_id}:
+    put:
+      summary: Update a strategy profile
+      parameters:
+        - name: strategy_id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/StrategyProfileInput"
+      responses:
+        "200":
+          description: Updated strategy settings
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StrategySettingsResponse"
+  /api/settings/strategies/{strategy_id}/default:
+    post:
+      summary: Set default strategy profile
+      parameters:
+        - name: strategy_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Updated strategy settings
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StrategySettingsResponse"
+  /api/settings/strategies/{strategy_id}/enabled:
+    post:
+      summary: Enable or disable a strategy profile
+      parameters:
+        - name: strategy_id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EnabledToggle"
+      responses:
+        "200":
+          description: Updated strategy settings
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StrategySettingsResponse"
+  /api/settings/strategies/{strategy_id}/rollback:
+    post:
+      summary: Roll back a strategy profile by historical version
+      parameters:
+        - name: strategy_id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/VersionRollbackRequest"
+      responses:
+        "200":
+          description: Updated strategy settings
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StrategySettingsResponse"
+  /api/settings/strategies/{strategy_id}/replay-tune:
+    post:
+      summary: Run offline replay/tune and optionally persist recommended params
+      parameters:
+        - name: strategy_id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/StrategyTuneRequest"
+      responses:
+        "200":
+          description: Replay/tune result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StrategyTuneResponse"
+  /api/settings/runtime:
+    get:
+      summary: Get current model and strategy config version summaries
+      responses:
+        "200":
+          description: Runtime config versions
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RuntimeVersionsResponse"
 components:
   schemas:
     NormalizedEnvelope:
       type: object
-      required:
-        - metric
-        - symbol
-        - source
-        - ingest_time
-        - records
+      required: [metric, symbol, source, ingest_time, records]
       properties:
         metric:
           type: string
@@ -159,3 +612,432 @@ components:
         avg_latency_ms:
           type: number
           nullable: true
+        cache_metrics:
+          type: object
+          additionalProperties: true
+    MonitorAlert:
+      type: object
+      properties:
+        level:
+          type: string
+        source:
+          type: string
+        message:
+          type: string
+        metric:
+          type: string
+        triggered_at_utc:
+          type: string
+    AuditEvent:
+      type: object
+      properties:
+        time:
+          type: string
+        metric:
+          type: string
+        symbol:
+          type: string
+          nullable: true
+        selected_source:
+          type: string
+        failed_sources:
+          type: array
+          items:
+            type: string
+        reason:
+          type: string
+    MonitorSnapshot:
+      type: object
+      properties:
+        captured_at_utc:
+          type: string
+        overall_status:
+          type: string
+        source_count:
+          type: integer
+        sources:
+          type: array
+          items:
+            $ref: "#/components/schemas/SourceHealth"
+        alerts:
+          type: array
+          items:
+            $ref: "#/components/schemas/MonitorAlert"
+        recent_audit_events:
+          type: array
+          items:
+            $ref: "#/components/schemas/AuditEvent"
+        audit_event_count:
+          type: integer
+    LoginRequest:
+      type: object
+      required: [password]
+      properties:
+        password:
+          type: string
+    AuthSessionResponse:
+      type: object
+      properties:
+        ok:
+          type: boolean
+        authenticated:
+          type: boolean
+        session:
+          type: object
+          properties:
+            username:
+              type: string
+            created_at:
+              type: string
+            expires_at:
+              type: string
+    AuthSessionInfo:
+      type: object
+      properties:
+        authenticated:
+          type: boolean
+        session:
+          type: object
+          nullable: true
+          properties:
+            username:
+              type: string
+            created_at:
+              type: string
+            expires_at:
+              type: string
+        config_versions:
+          $ref: "#/components/schemas/RuntimeConfigVersions"
+    SimpleOk:
+      type: object
+      properties:
+        ok:
+          type: boolean
+    RankingItem:
+      type: object
+      properties:
+        symbol:
+          type: string
+        name:
+          type: string
+        tier:
+          type: string
+        total_score:
+          type: number
+        confidence:
+          type: number
+        tactical_action:
+          type: string
+        tactical_reason:
+          type: string
+        risk_tags:
+          type: array
+          items:
+            type: string
+    SectorRankingItem:
+      type: object
+      properties:
+        sector:
+          type: string
+        change_pct:
+          type: number
+        main_net_inflow:
+          type: number
+        main_inflow_ratio:
+          type: number
+        top_stock:
+          type: string
+          nullable: true
+    FundDetail:
+      type: object
+      properties:
+        symbol:
+          type: string
+        name:
+          type: string
+        scorecard:
+          type: object
+          additionalProperties: true
+        news_summary:
+          type: object
+          additionalProperties: true
+        backtest_summary:
+          type: object
+          additionalProperties: true
+        data_source_refs:
+          type: array
+          items:
+            type: string
+        source_time_utc:
+          type: string
+          nullable: true
+    DailyReport:
+      type: object
+      properties:
+        report_id:
+          type: string
+        report_date:
+          type: string
+        generated_at_utc:
+          type: string
+        market_summary:
+          type: object
+          additionalProperties: true
+        tactical_brief:
+          type: array
+          items:
+            type: string
+        ranking:
+          type: array
+          items:
+            $ref: "#/components/schemas/RankingItem"
+        sector_ranking:
+          type: array
+          items:
+            $ref: "#/components/schemas/SectorRankingItem"
+        fund_details:
+          type: array
+          items:
+            $ref: "#/components/schemas/FundDetail"
+        risk_alerts:
+          type: array
+          items:
+            type: string
+        evidence:
+          type: object
+          additionalProperties: true
+    FundDetailResponse:
+      type: object
+      properties:
+        symbol:
+          type: string
+        report_id:
+          type: string
+        detail:
+          $ref: "#/components/schemas/FundDetail"
+    ReportRequest:
+      type: object
+      properties:
+        symbols:
+          oneOf:
+            - type: string
+            - type: array
+              items:
+                type: string
+        market_state:
+          type: string
+    ModelConfig:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        url:
+          type: string
+        apiKey:
+          type: string
+        hasApiKey:
+          type: boolean
+        model:
+          type: string
+        enabled:
+          type: boolean
+        is_default:
+          type: boolean
+        updated_at:
+          type: string
+    ModelConfigInput:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        url:
+          type: string
+        apiKey:
+          type: string
+        model:
+          type: string
+        enabled:
+          type: boolean
+        is_default:
+          type: boolean
+    ModelSettingsResponse:
+      type: object
+      properties:
+        version:
+          type: string
+        updated_at:
+          type: string
+        default_id:
+          type: string
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/ModelConfig"
+        history:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+    ModelTestResponse:
+      type: object
+      properties:
+        provider:
+          type: string
+        resolved_url:
+          type: string
+        ok:
+          type: boolean
+        connectivity:
+          type: object
+          additionalProperties: true
+        auth:
+          type: object
+          additionalProperties: true
+        model:
+          type: object
+          additionalProperties: true
+    StrategyProfile:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        strategy_type:
+          type: string
+        enabled:
+          type: boolean
+        is_default:
+          type: boolean
+        weight:
+          type: number
+        params:
+          type: object
+          additionalProperties: true
+        profile_revision:
+          type: integer
+        profile_version:
+          type: string
+        updated_at:
+          type: string
+        history:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+    StrategyProfileInput:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        strategy_type:
+          type: string
+        enabled:
+          type: boolean
+        is_default:
+          type: boolean
+        weight:
+          type: number
+        params:
+          type: object
+          additionalProperties: true
+    StrategySettingsResponse:
+      type: object
+      properties:
+        version:
+          type: string
+        updated_at:
+          type: string
+        default_id:
+          type: string
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/StrategyProfile"
+        history:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+    EnabledToggle:
+      type: object
+      properties:
+        enabled:
+          type: boolean
+    VersionRollbackRequest:
+      type: object
+      required: [version]
+      properties:
+        version:
+          type: string
+    StrategyTuneRequest:
+      type: object
+      properties:
+        symbols:
+          oneOf:
+            - type: string
+            - type: array
+              items:
+                type: string
+        market_state:
+          type: string
+        limit:
+          type: integer
+        persist:
+          type: boolean
+    StrategyTuneResponse:
+      type: object
+      properties:
+        strategy_id:
+          type: string
+        market_state:
+          type: string
+        symbols:
+          type: array
+          items:
+            type: string
+        config_version:
+          type: string
+        profile_version:
+          type: string
+        ranking:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+        recommended:
+          type: object
+          additionalProperties: true
+        persisted:
+          type: object
+          nullable: true
+          additionalProperties: true
+    RuntimeConfigVersion:
+      type: object
+      properties:
+        version:
+          type: string
+        updated_at:
+          type: string
+        default_id:
+          type: string
+    RuntimeConfigVersions:
+      type: object
+      properties:
+        models:
+          $ref: "#/components/schemas/RuntimeConfigVersion"
+        strategies:
+          $ref: "#/components/schemas/RuntimeConfigVersion"
+    RuntimeVersionsResponse:
+      type: object
+      properties:
+        versions:
+          $ref: "#/components/schemas/RuntimeConfigVersions"
+        captured_at_utc:
+          type: string

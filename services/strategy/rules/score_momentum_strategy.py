@@ -17,11 +17,13 @@ class ScoreMomentumStrategy(IStrategy):
         exit_score: float = 43.0,
         momentum_window: int = 3,
         min_acceleration: float = 1.5,
+        strategy_name: str | None = None,
     ) -> None:
         self.entry_score = float(entry_score)
         self.exit_score = float(exit_score)
         self.momentum_window = max(2, int(momentum_window))
         self.min_acceleration = float(min_acceleration)
+        self.name = strategy_name or self.name
 
     def generate(
         self,

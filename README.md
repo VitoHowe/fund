@@ -16,6 +16,21 @@
 API 总结与前端规划：
 - [API 总结](docs/api/API_SUMMARY.zh-CN.md)
 - [前端规划](docs/plan/frontend-plan.zh-CN.md)
+- [管理台说明](docs/product/admin-console.zh-CN.md)
+
+管理台页面：
+
+- `/login`：密码登录页
+- `/dashboard/today`：今日量化报告、一键生成、数据链路状态
+- `/fund/:symbol`：单基金量化报告页
+- `/settings/models`：模型配置中心（统一字段 `url / apiKey / model`）
+- `/settings/strategy`：策略配置中心（参数、权重、启停、版本、回滚、热更新、离线调优）
+
+安装依赖：
+
+```bash
+python -m pip install -e .
+```
 
 快速验证：
 
@@ -31,6 +46,17 @@ python scripts/check_p7_governance.py
 python scripts/check_api_runtime.py
 ```
 
+管理台默认开发密码与部署环境：
+
+- 默认开发密码：`fund-admin`
+- 生产环境应通过 `FUND_ADMIN_PASSWORD` 或 `FUND_ADMIN_PASSWORD_HASH` 覆盖默认值
+- `FUND_ADMIN_PASSWORD_HASH` 采用 `sha256` 十六进制字符串
+
+配置文件：
+
+- `config/model_providers.json`：模型配置、默认模型、热更新版本
+- `config/strategy_profiles.json`：策略配置、版本历史、默认策略、离线调优写回结果
+
 Docker 基线验证：
 
 ```bash
@@ -43,3 +69,8 @@ docker run --rm fund-intel:dev
 ```bash
 python apps/api/report_api.py
 ```
+
+本机访问：
+
+- API：`http://127.0.0.1:8010`
+- 管理台：`http://127.0.0.1:8010/login`
