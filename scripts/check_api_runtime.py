@@ -3,8 +3,10 @@
 from __future__ import annotations
 
 import json
+import shutil
 import subprocess
 import sys
+import tempfile
 import threading
 import time
 from http import HTTPStatus
@@ -16,6 +18,13 @@ import requests
 ROOT = Path(__file__).resolve().parents[1]
 BASE_URL = "http://127.0.0.1:8010"
 MOCK_URL = "http://127.0.0.1:8021"
+RUNTIME_STATE_PATHS = (
+    ROOT / "config" / "model_providers.json",
+    ROOT / "config" / "strategy_profiles.json",
+    ROOT / "data" / "fund_intel.db",
+    ROOT / "logs" / "data_hub_audit.log",
+)
+REPORTS_DIR = ROOT / "data" / "reports"
 
 
 class MockModelHandler(BaseHTTPRequestHandler):
@@ -58,7 +67,46 @@ def _start_mock_server() -> ThreadingHTTPServer:
     return server
 
 
+def _snapshot_runtime_state() -> Path:
+    backup_root = Path(tempfile.mkdtemp(prefix="fund-api-smoke-"))
+    for path in RUNTIME_STATE_PATHS:
+        target = backup_root / path.relative_to(ROOT)
+        target.parent.mkdir(parents=True, exist_ok=True)
+        if path.exists():
+            shutil.copy2(path, target)
+    if REPORTS_DIR.exists():
+        shutil.copytree(REPORTS_DIR, backup_root / REPORTS_DIR.relative_to(ROOT))
+    return backup_root
+
+
+def _restore_runtime_state(backup_root: Path) -> None:
+    for path in RUNTIME_STATE_PATHS:
+        backup_path = backup_root / path.relative_to(ROOT)
+        if backup_path.exists():
+            path.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(backup_path, path)
+            continue
+        if path.exists():
+            path.unlink()
+    reports_backup = backup_root / REPORTS_DIR.relative_to(ROOT)
+    if REPORTS_DIR.exists():
+        shutil.rmtree(REPORTS_DIR)
+    if reports_backup.exists():
+        shutil.copytree(reports_backup, REPORTS_DIR)
+    shutil.rmtree(backup_root, ignore_errors=True)
+
+
+def _build_strategy_update(profile: dict[str, object]) -> dict[str, object]:
+    params = dict(profile.get("params") or {})
+    if profile.get("strategy_type") == "score_threshold":
+        params["buy_threshold"] = round(float(params.get("buy_threshold") or 62.0) + 0.5, 2)
+    else:
+        params["entry_score"] = round(float(params.get("entry_score") or 55.0) + 0.5, 2)
+    return {"params": params}
+
+
 def main() -> None:
+    backup_root = _snapshot_runtime_state()
     mock_server = _start_mock_server()
     proc = subprocess.Popen(  # noqa: S603
         [sys.executable, "apps/api/report_api.py"],
@@ -122,6 +170,12 @@ def main() -> None:
             dashboard_resp.status_code == 200 and "Fund Intel Admin" in dashboard_resp.text
         )
 
+        fund_page_resp = session.get(f"{BASE_URL}/fund/014943", timeout=10)
+        output["endpoint_status"]["/fund/014943"] = fund_page_resp.status_code
+        output["checks"]["fund_page_available"] = (
+            fund_page_resp.status_code == 200 and "Fund Intel Admin" in fund_page_resp.text
+        )
+
         asset_resp = session.get(f"{BASE_URL}/assets/app.js", timeout=10)
         output["endpoint_status"]["/assets/app.js"] = asset_resp.status_code
         output["checks"]["asset_page_available"] = asset_resp.status_code == 200 and "renderDashboard" in asset_resp.text
@@ -175,16 +229,26 @@ def main() -> None:
         )
         strategy_id = default_strategy.get("id") if default_strategy else ""
         output["checks"]["strategy_present"] = bool(strategy_id)
-
-        tune_resp = session.post(
-            f"{BASE_URL}/api/settings/strategies/{strategy_id}/replay-tune",
-            json={"symbols": "014943", "market_state": "neutral", "limit": 60, "persist": True},
-            timeout=180,
+        original_profile_version = str(default_strategy.get("profile_version") or "")
+        strategy_update_resp = session.put(
+            f"{BASE_URL}/api/settings/strategies/{strategy_id}",
+            json=_build_strategy_update(default_strategy or {}),
+            timeout=10,
         )
-        output["endpoint_status"]["/api/settings/strategies/{id}/replay-tune"] = tune_resp.status_code
-        tune_payload = tune_resp.json()
-        output["checks"]["strategy_tune_has_ranking"] = bool(tune_payload.get("ranking"))
-        output["checks"]["strategy_tune_persisted"] = bool(tune_payload.get("persisted"))
+        output["endpoint_status"]["/api/settings/strategies/{id}"] = strategy_update_resp.status_code
+        output["checks"]["strategy_update_ok"] = strategy_update_resp.status_code == 200
+
+        strategy_reload_resp = session.post(f"{BASE_URL}/api/settings/strategies/reload", json={}, timeout=10)
+        output["endpoint_status"]["/api/settings/strategies/reload"] = strategy_reload_resp.status_code
+        reloaded_payload = strategy_reload_resp.json()
+        reloaded_strategy = next(
+            (item for item in reloaded_payload.get("items") or [] if item.get("id") == strategy_id),
+            {},
+        )
+        output["checks"]["strategy_hot_reload_ok"] = strategy_reload_resp.status_code == 200
+        output["checks"]["strategy_hot_reload_version_changed"] = (
+            bool(reloaded_strategy) and str(reloaded_strategy.get("profile_version") or "") != original_profile_version
+        )
 
         runtime_resp = session.get(f"{BASE_URL}/api/settings/runtime", timeout=10)
         output["endpoint_status"]["/api/settings/runtime"] = runtime_resp.status_code
@@ -214,6 +278,7 @@ def main() -> None:
             proc.wait(timeout=15)
         except subprocess.TimeoutExpired:
             proc.kill()
+        _restore_runtime_state(backup_root)
         stderr_tail = ""
         if proc.stderr:
             stderr_tail = "\n".join(proc.stderr.read().splitlines()[-20:])

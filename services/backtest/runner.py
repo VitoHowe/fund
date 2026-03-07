@@ -56,10 +56,11 @@ class BacktestRunner:
         market_state: str = "neutral",
         proxy_symbol: str | None = None,
         limit: int = 240,
+        history_rows: list[dict[str, Any]] | None = None,
         config: BacktestConfig | None = None,
     ) -> dict[str, Any]:
         cfg = config or BacktestConfig()
-        history_rows = self._load_history_snapshot(symbol=symbol, limit=limit)
+        history_rows = list(history_rows) if history_rows is not None else self.load_history_snapshot(symbol=symbol, limit=limit)
         if len(history_rows) < 8:
             raise ValueError("history snapshot is not enough for backtest")
         effective_warmup_days = min(cfg.warmup_days, max(5, len(history_rows) - 3))
@@ -106,8 +107,11 @@ class BacktestRunner:
             "ranking": ranking,
         }
 
-    def _load_history_snapshot(self, symbol: str, limit: int) -> list[dict[str, Any]]:
-        payload = self.source_manager.fetch_history(symbol, limit=limit, bypass_cache=True)
+    def load_history_snapshot(self, symbol: str, limit: int, *, bypass_cache: bool = False) -> list[dict[str, Any]]:
+        return self._load_history_snapshot(symbol=symbol, limit=limit, bypass_cache=bypass_cache)
+
+    def _load_history_snapshot(self, symbol: str, limit: int, *, bypass_cache: bool = False) -> list[dict[str, Any]]:
+        payload = self.source_manager.fetch_history(symbol, limit=limit, bypass_cache=bypass_cache)
         rows = payload.get("records") or []
         cleaned: list[dict[str, Any]] = []
         for row in rows:

@@ -147,6 +147,10 @@ class StrategySettingsManager:
         state = self.store.get_state(force_reload=False)
         profile = self._find_profile(state, strategy_id)
         candidates = _build_candidates(profile)
+        history_snapshots = {
+            symbol: backtest_runner.load_history_snapshot(symbol=symbol, limit=limit)
+            for symbol in symbols
+        }
         results: list[dict[str, Any]] = []
         for index, params in enumerate(candidates):
             candidate_profile = copy.deepcopy(profile)
@@ -161,6 +165,7 @@ class StrategySettingsManager:
                     market_state=market_state,
                     proxy_symbol=DEFAULT_PROXY_SYMBOL_MAP.get(symbol),
                     limit=limit,
+                    history_rows=history_snapshots.get(symbol),
                     config=BacktestConfig(warmup_days=20),
                 )
                 ranking = (payload.get("ranking") or [{}])[0]

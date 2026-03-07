@@ -3,7 +3,7 @@
 ## 元信息
 - 计划 ID：plan-2026-03-07-frontend-strategy-config-delivery
 - 创建时间：2026-03-07T02:55:00+08:00
-- 状态：blocked（推送鉴权失败，代码与自测已完成）
+- 状态：in_progress（恢复执行，处理中：自测、推送与 HKCloud 部署验证）
 - 执行方式：按 `plan -> do-plan` 连续执行
 - 复杂度：高
 - 计划文件：`.codex/plans/current/2026-03-07_frontend-strategy-config-delivery.md`
@@ -50,7 +50,7 @@
 | M2 报表与监控页面闭环 | done | 提供登录页、今日报告页、单基金页、监控区和静态页面路由 | 页面可访问；报告/监控接口与页面联动正常 |
 | M3 模型配置中心 | done | 提供模型配置 CRUD、默认项、脱敏返回、连接测试 | 模型配置支持列表/新增/更新/设默认/连通性测试 |
 | M4 策略配置与离线调优 | done | 提供策略配置 CRUD、启停、默认项、版本回滚、热更新、离线 replay/tune | 策略参数可配置；可运行 replay 并写入新版本 |
-| M5 文档、验证、发布 | blocked | 更新验证脚本、README、API 文档、部署说明，并完成自测、提交推送 | 验证脚本通过；文档更新；提交并推送 `origin/main` |
+| M5 文档、验证、发布 | in_progress | 更新验证脚本、README、API 文档、部署说明，并完成自测、提交推送 | 验证脚本通过；文档更新；提交并推送 `origin/main` |
 
 状态字段仅允许：`todo` / `in_progress` / `done` / `blocked`。
 
@@ -131,7 +131,7 @@
   - 日报与单基金详情使用的策略结果可反映最新配置版本。
 
 ### 步骤 5：文档、验证、提交与推送
-- 状态：blocked
+- 状态：in_progress
 - 目标：补齐验证脚本、README、API 文档、部署说明，并完成自测、提交与推送。
 - 涉及文件：
   - `scripts/check_api_runtime.py`
@@ -189,6 +189,7 @@
 | 2026-03-07T03:58:00+08:00 | 完成模型配置中心、策略配置中心、离线 replay/tune | done |
 | 2026-03-07T04:00:00+08:00 | 完成 README / docs / OpenAPI / 验证脚本更新与发布收尾 | done |
 | 2026-03-07T04:05:00+08:00 | 推送 `origin/main` 失败（SSH publickey） | blocked |
+| 2026-03-07T11:27:40+08:00 | 恢复执行 M5，进入自测、推送与 HKCloud 部署验证 | in_progress |
 
 ---
 
