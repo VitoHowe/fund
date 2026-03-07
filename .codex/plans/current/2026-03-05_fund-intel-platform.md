@@ -580,7 +580,7 @@ fund-intel/
 
 ---
 
-## 15. 执行进度（截至 2026-03-06）
+## 15. 执行进度（截至 2026-03-07）
 
 ### 15.1 MCP 任务状态
 
@@ -599,7 +599,12 @@ fund-intel/
 
 1. P6 验收证据：`.codex/plans/current/evidence/2026-03-06_p6-reporting-validation.md`。
 2. P7 验收证据：`.codex/plans/current/evidence/2026-03-06_p7-governance-validation.md`。
-3. 发布前补充修复：
+3. 外部参考仓库与文档分析：`docs/research/data-source-integration-plan.zh-CN.md`。
+4. 本轮新增结论：
+   - 建议将数据链路拆为 `instrument_master / fund_nav_snapshot / fund_nav_history / etf_quote_depth / sector_flow / market_news / external_evidence` 七条语义链路，外部 API 契约保持兼容。
+   - 建议 `Eastmoney raw + AkShare` 作为生产主组合，`efinance` 因许可证声明冲突降级为可选备源，`stock-data-mcp` 仅保留在研发/验收环境。
+   - HKCloud 最小可行部署建议为 `fund-api` 单容器起步，只有在需要 ETF 盘口与逐笔成交时再增加 `tdx-api` sidecar。
+5. 发布前补充修复：
    - `report_api` 入口自包含（无需手工设置 `PYTHONPATH`）。
    - `flow` 全源失败时报告服务降级为可用（不再返回 500）。
    - API 运行时烟囱校验脚本：`scripts/check_api_runtime.py`。
@@ -609,3 +614,4 @@ fund-intel/
 1. 本地功能链路与治理链路校验通过（P1-P7 check 脚本通过）。
 2. 运行时独立性校验通过（不依赖 MCP）。
 3. Docker 镜像构建/运行命令已准备；当前环境未安装 Docker CLI，容器实测待在具备 Docker 的环境执行。
+4. 外部数据源接入重构建议已完成，待按 `docs/research/data-source-integration-plan.zh-CN.md` 分批实施。
