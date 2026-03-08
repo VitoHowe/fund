@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import Any
 
 from services.data_hub.adapters.base import IDataSourceAdapter
-from services.data_hub.exceptions import DataUnavailableError
+from services.data_hub.exceptions import AdapterNotSupportedError, DataUnavailableError
 from services.data_hub.repository import DataRepository
 from services.data_hub.source_manager import SourceManager, SourceManagerConfig
 from services.data_hub.types import NormalizedEnvelope
@@ -80,6 +80,27 @@ class _BackupAdapter(IDataSourceAdapter):
         )
 
 
+class _FlowRequiresSymbolAdapter(IDataSourceAdapter):
+    supported_metrics = ("flow",)
+
+    def __init__(self) -> None:
+        super().__init__(name="symbol_only_flow", priority=1, enabled=True)
+
+    def fetch_realtime(self, symbol: str, **kwargs: Any) -> NormalizedEnvelope:
+        raise AdapterNotSupportedError("not used")
+
+    def fetch_history(self, symbol: str, **kwargs: Any) -> NormalizedEnvelope:
+        raise AdapterNotSupportedError("not used")
+
+    def fetch_news(self, symbol: str | None = None, **kwargs: Any) -> NormalizedEnvelope:
+        raise AdapterNotSupportedError("not used")
+
+    def fetch_flow(self, symbol: str | None = None, **kwargs: Any) -> NormalizedEnvelope:
+        if not symbol:
+            raise AdapterNotSupportedError("flow requires symbol")
+        raise DataUnavailableError("unexpected symbol flow call")
+
+
 class FailoverIntegrationTests(unittest.TestCase):
     def _build_manager(self) -> SourceManager:
         tmp = tempfile.mkdtemp(prefix="fund-failover-")
@@ -113,6 +134,24 @@ class FailoverIntegrationTests(unittest.TestCase):
         snap = monitor.snapshot()
         self.assertIn(snap["overall_status"], {"warning", "critical", "healthy"})
         self.assertTrue(len(snap.get("alerts") or []) >= 1)
+
+    def test_not_supported_source_is_skipped_without_failure_count(self) -> None:
+        tmp = tempfile.mkdtemp(prefix="fund-failover-skip-")
+        root = Path(__file__).resolve().parents[2]
+        repo = DataRepository(
+            db_path=str(Path(tmp) / "test.db"),
+            schema_path=str(root / "infra" / "db" / "schema.sql"),
+        )
+        manager = SourceManager(
+            adapters=[_FlowRequiresSymbolAdapter(), _BackupAdapter()],
+            config=SourceManagerConfig(failure_threshold=1, cooldown_seconds=30, retry_per_source=0),
+            repository=repo,
+        )
+        payload = manager.fetch_flow(symbol=None, limit=2, bypass_cache=True)
+        self.assertEqual(payload["source"], "backup_ok")
+        health = {item["source"]: item for item in manager.get_source_health()}
+        self.assertEqual(health["symbol_only_flow"]["failure_count"], 0)
+        self.assertEqual(health["symbol_only_flow"]["route_state"], "idle")
 
 
 if __name__ == "__main__":

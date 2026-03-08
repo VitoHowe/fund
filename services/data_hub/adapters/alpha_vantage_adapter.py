@@ -15,6 +15,8 @@ from services.data_hub.types import NormalizedEnvelope
 class AlphaVantageAdapter(IDataSourceAdapter):
     """Optional adapter requiring ALPHA_VANTAGE_API_KEY."""
 
+    supported_metrics = ("realtime", "history", "news")
+
     def __init__(self, priority: int = 6, enabled: bool = True) -> None:
         super().__init__(name="alpha_vantage", priority=priority, enabled=enabled)
         self.api_key = os.getenv("ALPHA_VANTAGE_API_KEY")

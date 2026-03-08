@@ -8,7 +8,7 @@ from typing import Any
 import requests
 
 from services.data_hub.adapters.base import IDataSourceAdapter
-from services.data_hub.exceptions import DataSourceError, DataUnavailableError
+from services.data_hub.exceptions import AdapterNotSupportedError, DataSourceError, DataUnavailableError
 from services.data_hub.types import NormalizedEnvelope
 
 
@@ -176,7 +176,7 @@ class EastmoneyAdapter(IDataSourceAdapter):
     def fetch_flow(self, symbol: str | None = None, **kwargs: Any) -> NormalizedEnvelope:
         timeout = int(kwargs.get("timeout_seconds", 20))
         if not symbol:
-            raise DataUnavailableError("symbol is required for eastmoney flow")
+            raise AdapterNotSupportedError("eastmoney flow requires symbol")
         secid = _to_secid(symbol)
         url = "https://push2.eastmoney.com/api/qt/stock/get"
         params = {

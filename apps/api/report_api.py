@@ -37,6 +37,52 @@ APP_STATIC_ROOT = ROOT / "apps" / "web" / "static"
 PUBLIC_PAGE_ROUTES = {"/", "/login"}
 PROTECTED_PAGE_PREFIXES = ("/dashboard", "/fund", "/settings")
 SESSION_COOKIE_NAME = "fund_session"
+DEFAULT_REPORT_SCOPE = ["014943", "159870"]
+WATCHLIST_SCOPE = ["014943", "159870", "512660", "515790", "518880", "159516"]
+ALL_MARKET_SCOPE = [
+    "159326",
+    "515220",
+    "561360",
+    "159611",
+    "159201",
+    "159870",
+    "516150",
+    "515790",
+    "515210",
+    "518880",
+    "512400",
+    "515880",
+    "512660",
+    "159206",
+    "512800",
+    "159865",
+    "159755",
+    "512880",
+    "159516",
+    "512170",
+    "159852",
+    "512690",
+    "159851",
+    "512200",
+    "159766",
+    "159869",
+]
+REPORT_SCOPE_SYMBOLS = {
+    "default": DEFAULT_REPORT_SCOPE,
+    "watchlist": WATCHLIST_SCOPE,
+    "all_market": ALL_MARKET_SCOPE,
+}
+STRATEGY_TEMPLATE_TO_STATE = {
+    "保守": "bear",
+    "bear": "bear",
+    "defensive": "bear",
+    "平衡": "neutral",
+    "neutral": "neutral",
+    "balanced": "neutral",
+    "进取": "bull",
+    "bull": "bull",
+    "aggressive": "bull",
+}
 
 
 class ApiError(Exception):
@@ -142,8 +188,9 @@ def build_runtime() -> dict[str, Any]:
         registry=build_default_factor_registry(),
         weight_manager=WeightTemplateManager(config_path="config/factor_weights.yaml"),
     )
-    news_service = NewsFusionService()
+    news_service = NewsFusionService(source_manager=source_manager)
     backtest_runner = BacktestRunner(source_manager=source_manager, factor_scorer=factor_scorer)
+    model_settings = ModelSettingsManager(config_path="config/model_providers.json")
     strategy_settings = StrategySettingsManager(config_path="config/strategy_profiles.json")
     service = DailyReportService(
         source_manager=source_manager,
@@ -151,13 +198,15 @@ def build_runtime() -> dict[str, Any]:
         news_service=news_service,
         backtest_runner=backtest_runner,
         strategy_provider=lambda: strategy_settings.build_enabled_strategies(force_reload=False),
+        strategy_snapshot_provider=lambda: strategy_settings.get_runtime_snapshot(force_reload=False),
+        model_runtime_provider=lambda: model_settings.get_runtime_model(force_reload=False),
     )
     return {
         "source_manager": source_manager,
         "service": service,
         "monitor": SourceMonitor(source_manager=source_manager),
         "backtest_runner": backtest_runner,
-        "model_settings": ModelSettingsManager(config_path="config/model_providers.json"),
+        "model_settings": model_settings,
         "strategy_settings": strategy_settings,
         "report_cache": ReportCache(root_path="data/reports"),
         "sessions": SessionStore(),
@@ -245,7 +294,7 @@ class ReportApiHandler(BaseHTTPRequestHandler):
             return
         if path == "/api/report/daily/latest":
             latest = self.runtime["report_cache"].get_latest_daily_report()
-            if latest is None:
+            if latest is None or "strategy_profile" not in latest or "data_pipeline" not in latest:
                 latest = self._generate_report({})
             self._send_json(latest)
             return
@@ -253,14 +302,27 @@ class ReportApiHandler(BaseHTTPRequestHandler):
             symbol = (qs.get("symbol") or ["014943"])[0]
             report = self._generate_report({"symbols": [symbol]})
             detail = (report.get("fund_details") or [None])[0]
-            self._send_json({"symbol": symbol, "detail": detail, "report_id": report.get("report_id")})
+            self._send_json(
+                {
+                    "symbol": symbol,
+                    "detail": detail,
+                    "report_id": report.get("report_id"),
+                    "strategy_profile": report.get("strategy_profile"),
+                    "model_usage": report.get("model_usage"),
+                    "data_pipeline": report.get("data_pipeline"),
+                    "quality_score": report.get("quality_score"),
+                }
+            )
             return
         if path == "/api/report/export":
             fmt = ((qs.get("format") or ["md"])[0]).lower()
             report_obj = self.runtime["service"].generate_daily_report(
                 symbols=self._parse_symbols(qs),
                 proxy_symbol_map={"014943": "159870"},
-                options=DailyReportOptions(market_state=(qs.get("market_state") or ["neutral"])[0]),
+                options=DailyReportOptions(
+                    market_state=_resolve_market_state(qs),
+                    stable_only=_bool_lookup(qs, "stable_only", False),
+                ),
             )
             self.runtime["report_cache"].save_daily_report(report_obj.to_dict())
             data = self.runtime["service"].export_report(report_obj, fmt=fmt)
@@ -375,7 +437,7 @@ class ReportApiHandler(BaseHTTPRequestHandler):
                         strategy_id,
                         backtest_runner=self.runtime["backtest_runner"],
                         symbols=symbols,
-                        market_state=str(body.get("market_state") or "neutral"),
+                        market_state=_resolve_market_state(body or qs),
                         limit=int(body.get("limit") or 120),
                         persist=bool(body.get("persist", False)),
                     )
@@ -432,11 +494,14 @@ class ReportApiHandler(BaseHTTPRequestHandler):
 
     def _generate_report(self, source: dict[str, Any]) -> dict[str, Any]:
         symbols = self._parse_symbols(source)
-        market_state = _lookup(source, "market_state", "neutral")
+        market_state = _resolve_market_state(source)
         report = self.runtime["service"].generate_daily_report(
             symbols=symbols,
             proxy_symbol_map={"014943": "159870"},
-            options=DailyReportOptions(market_state=market_state),
+            options=DailyReportOptions(
+                market_state=market_state,
+                stable_only=_bool_lookup(source, "stable_only", False),
+            ),
         )
         payload = report.to_dict()
         self.runtime["report_cache"].save_daily_report(payload)
@@ -444,12 +509,14 @@ class ReportApiHandler(BaseHTTPRequestHandler):
 
     @staticmethod
     def _parse_symbols(source: dict[str, Any]) -> list[str]:
-        raw_value = _lookup(source, "symbols", "014943,159870")
+        scope = str(_lookup(source, "report_scope", "default") or "default").strip().lower()
+        default_symbols = REPORT_SCOPE_SYMBOLS.get(scope, DEFAULT_REPORT_SCOPE)
+        raw_value = _lookup(source, "symbols", ",".join(default_symbols))
         if isinstance(raw_value, list):
             values = [str(item).strip() for item in raw_value if str(item).strip()]
         else:
             values = [item.strip() for item in str(raw_value).split(",") if item.strip()]
-        return values or ["014943"]
+        return values or list(default_symbols or DEFAULT_REPORT_SCOPE)
 
     def _require_session(self) -> dict[str, Any]:
         session = self._get_session()
@@ -597,12 +664,34 @@ def _lookup(source: dict[str, Any], key: str, default: Any) -> Any:
     return value
 
 
+def _resolve_market_state(source: dict[str, Any]) -> str:
+    raw_value = _lookup(source, "strategy_profile", None)
+    if raw_value in (None, "", "--"):
+        raw_value = _lookup(source, "market_state", "neutral")
+    key = str(raw_value or "neutral").strip().lower()
+    return STRATEGY_TEMPLATE_TO_STATE.get(key, "neutral")
+
+
 def _int_query(qs: dict[str, list[str]], key: str, default: int) -> int:
     raw = _lookup(qs, key, default)
     try:
         return int(raw)
     except (TypeError, ValueError):
         return default
+
+
+def _bool_lookup(source: dict[str, Any], key: str, default: bool) -> bool:
+    raw = _lookup(source, key, default)
+    if isinstance(raw, bool):
+        return raw
+    if raw in (None, "", "--"):
+        return default
+    text = str(raw).strip().lower()
+    if text in {"1", "true", "yes", "y", "on"}:
+        return True
+    if text in {"0", "false", "no", "n", "off"}:
+        return False
+    return default
 
 
 def run_server(host: str = "0.0.0.0", port: int = 8010) -> None:

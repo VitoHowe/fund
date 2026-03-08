@@ -12,6 +12,8 @@ from services.data_hub.types import NormalizedEnvelope
 class TdxAdapter(IDataSourceAdapter):
     """Placeholder adapter for TDX protocol integration."""
 
+    supported_metrics: tuple[str, ...] = ()
+
     def __init__(self, priority: int = 4, enabled: bool = True) -> None:
         super().__init__(name="tdx", priority=priority, enabled=enabled)
 

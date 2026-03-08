@@ -42,10 +42,18 @@ class SourceMonitor:
         items = self.source_manager.get_source_health()
         alerts = self._evaluate_alerts(items)
         overall = _overall_status(items, alerts)
+        state_counts = {
+            "ok": sum(1 for item in items if item.get("route_state") == "ok"),
+            "degraded": sum(1 for item in items if item.get("route_state") == "degraded"),
+            "unavailable": sum(1 for item in items if item.get("route_state") == "unavailable"),
+            "idle": sum(1 for item in items if item.get("route_state") == "idle"),
+            "disabled": sum(1 for item in items if item.get("route_state") == "disabled"),
+        }
         return {
             "captured_at_utc": now_utc_iso(),
             "overall_status": overall,
             "source_count": len(items),
+            "state_counts": state_counts,
             "sources": items,
             "alerts": [item.to_dict() for item in alerts],
         }
@@ -61,16 +69,20 @@ class SourceMonitor:
         lines.append("# TYPE fund_data_source_consecutive_failures gauge")
         lines.append("# HELP fund_data_source_avg_latency_ms Source average latency in ms")
         lines.append("# TYPE fund_data_source_avg_latency_ms gauge")
+        lines.append("# HELP fund_data_source_route_state Source route state marker")
+        lines.append("# TYPE fund_data_source_route_state gauge")
         for item in snapshot["sources"]:
             source = item.get("source")
             enabled = 1 if item.get("enabled") else 0
             failure_count = float(item.get("failure_count") or 0)
             consecutive = float(item.get("consecutive_failures") or 0)
             latency = float(item.get("avg_latency_ms") or 0.0)
+            route_state = item.get("route_state") or "idle"
             lines.append(f'fund_data_source_enabled{{source="{source}"}} {enabled}')
             lines.append(f'fund_data_source_failure_count{{source="{source}"}} {failure_count}')
             lines.append(f'fund_data_source_consecutive_failures{{source="{source}"}} {consecutive}')
             lines.append(f'fund_data_source_avg_latency_ms{{source="{source}"}} {latency}')
+            lines.append(f'fund_data_source_route_state{{source="{source}",state="{route_state}"}} 1')
         lines.append("# HELP fund_data_source_alert_total Active monitor alerts")
         lines.append("# TYPE fund_data_source_alert_total gauge")
         lines.append(f'fund_data_source_alert_total{{level="critical"}} {sum(1 for a in snapshot["alerts"] if a["level"]=="critical")}')
@@ -83,6 +95,13 @@ class SourceMonitor:
             source = str(item.get("source"))
             if not item.get("enabled", True):
                 alerts.append(MonitorAlert(level="warning", source=source, message="source disabled"))
+            route_state = str(item.get("route_state") or "idle")
+            if route_state == "unavailable":
+                detail = item.get("error_type") or item.get("error_message") or "unknown"
+                alerts.append(MonitorAlert(level="critical", source=source, message=f"source unavailable: {detail}"))
+            elif route_state == "degraded":
+                detail = item.get("fallback_source") or item.get("error_type") or "fallback"
+                alerts.append(MonitorAlert(level="warning", source=source, message=f"source degraded: {detail}"))
             consecutive = int(item.get("consecutive_failures") or 0)
             latency = float(item.get("avg_latency_ms") or 0.0)
             if consecutive >= self.config.max_consecutive_failures_critical:

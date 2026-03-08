@@ -18,15 +18,24 @@ class SourceHealth:
 
     source: str
     priority: int
+    supported_metrics: list[str] = field(default_factory=list)
     enabled: bool = True
+    status: str = "not_requested"
+    route_state: str = "idle"
     success_count: int = 0
     failure_count: int = 0
     consecutive_failures: int = 0
+    last_metric: str | None = None
     last_error: str | None = None
     last_success_time: str | None = None
     last_failure_time: str | None = None
     circuit_open_until: str | None = None
     avg_latency_ms: float | None = None
+    latency_ms: float | None = None
+    fallback_source: str | None = None
+    quality_score: float | None = None
+    error_message: str | None = None
+    error_type: str | None = None
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)

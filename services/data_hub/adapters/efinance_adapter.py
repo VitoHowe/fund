@@ -17,6 +17,8 @@ except Exception:  # pragma: no cover
 class EFinanceAdapter(IDataSourceAdapter):
     """Adapter backed by the efinance package."""
 
+    supported_metrics = ("realtime", "history")
+
     def __init__(self, priority: int = 2, enabled: bool = True) -> None:
         super().__init__(name="efinance", priority=priority, enabled=enabled)
 

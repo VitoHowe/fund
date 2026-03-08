@@ -17,6 +17,8 @@ except Exception:  # pragma: no cover
 class YFinanceAdapter(IDataSourceAdapter):
     """Backup adapter for global ticker data."""
 
+    supported_metrics = ("realtime", "history", "news")
+
     def __init__(self, priority: int = 5, enabled: bool = True) -> None:
         super().__init__(name="yfinance", priority=priority, enabled=enabled)
 

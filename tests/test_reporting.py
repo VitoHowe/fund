@@ -66,7 +66,7 @@ class FakeNewsService:
     def symbol_news(self, symbol, items):
         return []
 
-    def build_factor_extra(self, symbol, items):
+    def build_factor_extra(self, symbol, items, source_options=None):
         return {"news_feature": FakeNewsSummary(symbol).to_dict()}
 
 
@@ -101,6 +101,41 @@ class FakeSourceManager:
 class FailingFlowSourceManager(FakeSourceManager):
     def fetch_flow(self, symbol=None, **kwargs):
         raise RuntimeError("simulated flow failure")
+
+
+class GuardrailFactorScorer:
+    def score_symbol(self, symbol, market_state="neutral", proxy_symbol=None, extra_context=None):
+        return _ScoreCard(
+            {
+                "symbol": symbol,
+                "total_score": 81.0,
+                "confidence": 0.88,
+                "risk_tags": ["FLOW_DATA_UNAVAILABLE", "NEWS_DATA_UNAVAILABLE"],
+                "factor_scores": {
+                    "flow": {
+                        "score": 50.0,
+                        "confidence": 0.2,
+                        "weight": 0.2,
+                        "contribution": 10.0,
+                        "raw": {"error": "flow unavailable"},
+                        "source_refs": [],
+                    },
+                    "sentiment": {
+                        "score": 50.0,
+                        "confidence": 0.2,
+                        "weight": 0.2,
+                        "contribution": 10.0,
+                        "raw": {"error": "news unavailable"},
+                        "source_refs": [],
+                    },
+                },
+            }
+        )
+
+
+class FailingBacktestRunner:
+    def run(self, symbol, strategies, market_state="neutral", proxy_symbol=None, limit=120, config=None, stable_only=False):
+        raise ValueError("history snapshot is not enough for backtest")
 
 
 class ReportingTests(unittest.TestCase):
@@ -152,6 +187,34 @@ class ReportingTests(unittest.TestCase):
         self.assertEqual(payload["sector_ranking"], [])
         self.assertIn("MARKET: SECTOR_FLOW_UNAVAILABLE", payload["risk_alerts"])
         self.assertTrue((payload["evidence"] or {}).get("sector_flow_error"))
+
+    def test_trade_action_blocked_when_news_and_flow_unavailable(self):
+        service = DailyReportService(
+            source_manager=FakeSourceManager(),
+            factor_scorer=GuardrailFactorScorer(),
+            news_service=FakeNewsService(),
+            backtest_runner=FakeBacktestRunner(),
+        )
+        report = service.generate_daily_report(symbols=["017193"], options=DailyReportOptions(include_backtest=False))
+        payload = report.to_dict()
+        detail = payload["fund_details"][0]
+        self.assertEqual(detail["tactical_action"], "阻断")
+        self.assertIn("TRADE_BLOCKED_DATA_UNAVAILABLE", detail["risk_tags"])
+        self.assertIn("017193: TRADE_ACTION_BLOCKED", payload["risk_alerts"])
+
+    def test_backtest_failure_degrades_without_crashing_report(self):
+        service = DailyReportService(
+            source_manager=FakeSourceManager(),
+            factor_scorer=FakeFactorScorer(),
+            news_service=FakeNewsService(),
+            backtest_runner=FailingBacktestRunner(),
+        )
+        report = service.generate_daily_report(symbols=["011452"], options=DailyReportOptions(include_backtest=True))
+        payload = report.to_dict()
+        backtest_summary = payload["fund_details"][0]["backtest_summary"]
+        self.assertEqual(backtest_summary["status"], "failed")
+        self.assertIn("history snapshot is not enough for backtest", backtest_summary["error_message"])
+        self.assertIn("011452: BACKTEST_DATA_UNAVAILABLE", payload["risk_alerts"])
 
 
 if __name__ == "__main__":
